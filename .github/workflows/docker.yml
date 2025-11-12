@@ -8,6 +8,8 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: checkout pytorch
+        run: ./get_pytorch.sh
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
@@ -21,13 +23,10 @@ jobs:
           swap-size-mb: 1024
           remove-dotnet: 'true'
           remove-android: 'true'
-      - name: checkout pytorch
-        run: ./get_pytorch.sh
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
