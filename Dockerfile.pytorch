@@ -8,7 +8,7 @@ RUN --mount=type=bind,source=./pytorch,target=/pytorch USE_PRIORITIZED_TEXT_FOR_
 
 FROM nvcr.io/nvidia/l4t-jetpack:r36.4.0
 RUN apt-get -yq update && apt-get install -yq git python3-pip python$(python -V|grep -Eo '\b[0-9]+\.[0-9]+')-dev libopenmpi3 libopenblas0
-WORKDIR /
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
-RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist pip install $PIP_OPTS /pytorch/dist/*whl
+WORKDIR /pytorch
+RUN --mount=type=bind,source=./pytorch,target=/pytorch pip install $PIP_OPTS /pytorch/dist/*whl
