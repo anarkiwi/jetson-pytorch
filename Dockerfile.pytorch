@@ -1,12 +1,13 @@
 FROM nvcr.io/nvidia/l4t-jetpack:r36.4.0 AS pytorch-builder
+ARG PYTORCH_VERSION=""
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
 RUN apt-get -yq update && apt-get install -yq git python3-pip libssl-dev cmake libopenblas-dev libopenmpi-dev && pip install scikit-build ninja
 WORKDIR /
-COPY pytorch pytorch
+RUN git clone --recursive --branch ${PYTORCH_VERSION} http://github.com/pytorch/pytorch
 WORKDIR /pytorch
 RUN pip install $PIP_OPTS -r /pytorch/requirements.txt
-RUN USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" python /pytorch/setup.py bdist_wheel
+RUN MAX_JOBS=8 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" python /pytorch/setup.py bdist_wheel
 
 FROM nvcr.io/nvidia/l4t-jetpack:r36.4.0
 RUN apt-get -yq update && apt-get install -yq git python3-pip python$(python -V|grep -Eo '\b[0-9]+\.[0-9]+')-dev libopenmpi3 libopenblas0
