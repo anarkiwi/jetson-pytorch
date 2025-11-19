@@ -36,4 +36,4 @@ jobs:
             PYTORCH_VERSION=${{ steps.change_version.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        if: github.repository == 'anarkiwi/jetson-docker' && github.event_name == 'push'
+        if: github.repository == 'anarkiwi/jetson-pytorch' && github.event_name == 'push'
