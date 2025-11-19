@@ -1,7 +1,7 @@
 name: docker-release
 on: [push, pull_request]
 jobs:
-  docker-jetson:
+  jetson-pytorch:
     runs-on: ubuntu-24.04-arm
     environment:
       name: "release"
@@ -27,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.jetson
+          file: Dockerfile.pytorch
           platforms: linux/arm64
           push: true
           tags: anarkiwi/jetson-pytorch:${{ steps.change_version.outputs.VERSION }}
