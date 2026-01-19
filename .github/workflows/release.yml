@@ -8,6 +8,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+      - name: mkdir pytorch
+        run: mkdir pytorch
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -32,7 +34,7 @@ jobs:
           push: true
           tags: anarkiwi/jetson-pytorch:${{ steps.change_version.outputs.VERSION }}
           build-args: |
-            JETPACK=r36.4.0
+            MAX_JOBS=16
             PYTORCH_VERSION=${{ steps.change_version.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
