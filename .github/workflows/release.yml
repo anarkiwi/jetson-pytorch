@@ -34,7 +34,6 @@ jobs:
           push: true
           tags: anarkiwi/jetson-pytorch:${{ steps.change_version.outputs.VERSION }}
           build-args: |
-            MAX_JOBS=16
             PYTORCH_VERSION=${{ steps.change_version.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
