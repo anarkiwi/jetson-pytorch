@@ -1,6 +1,6 @@
 ARG JETPACK="r36.4.0"
 FROM nvcr.io/nvidia/l4t-jetpack:${JETPACK} AS pytorch-builder
-ARG PYTORCH_VERSION="v2.9.1"
+ARG PYTORCH_VERSION="v2.10.0"
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
 RUN apt-get -yq update && apt-get install -yq git python3-pip libssl-dev cmake libopenblas-dev libopenmpi-dev && pip install $PIP_OPTS scikit-build ninja
