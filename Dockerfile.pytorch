@@ -1,6 +1,6 @@
 ARG JETPACK="r36.4.0"
 FROM nvcr.io/nvidia/l4t-jetpack:${JETPACK} AS pytorch-builder
-ARG PYTORCH_VERSION="v2.10.0"
+ARG PYTORCH_VERSION="v2.11.0"
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
 RUN apt-get -yq update && apt-get install -yq git python3-pip libssl-dev cmake libopenblas-dev libopenmpi-dev && pip install $PIP_OPTS scikit-build ninja
@@ -11,9 +11,40 @@ WORKDIR /pytorch
 RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
 RUN MAX_JOBS=2 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" python /pytorch/setup.py bdist_wheel
 
+# triton-builder: build triton at the exact commit torch's own CI pins.
+# Without triton, ``torch.compile`` Inductor falls back to aten-only
+# fusion and ``triton.cudagraphs`` is unavailable -- effectively a no-op
+# for inference on Jetson. The pin file lives in the pytorch source tree,
+# so the triton revision always matches the built torch wheel's expected
+# ABI.
+FROM nvcr.io/nvidia/l4t-jetpack:${JETPACK} AS triton-builder
+ARG PIP_OPTS=""
+ENV PIP_OPTS=$PIP_OPTS
+RUN apt-get -yq update && apt-get install -yq \
+    git python3-pip libssl-dev cmake ninja-build \
+    g++ zlib1g-dev libstdc++-12-dev \
+    && pip install $PIP_OPTS --no-cache-dir wheel scikit-build ninja lit
+# Install the freshly-built torch wheel so triton's setup.py can detect
+# it (triton links its bindings against the installed torch version).
+RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist \
+    pip install --no-cache-dir $PIP_OPTS /pytorch/dist/*whl
+# Read the torch-pinned triton commit and build that exact revision.
+RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/.ci/docker/ci_commit_pins/triton.txt,target=/tmp/triton_pin.txt \
+    git clone https://github.com/triton-lang/triton.git /triton \
+    && cd /triton \
+    && git checkout "$(cat /tmp/triton_pin.txt)" \
+    && git submodule update --init --recursive
+WORKDIR /triton
+# Triton's setup.py downloads a pre-built LLVM tarball; needs network at
+# build time. Build a wheel only -- the runtime stage installs it.
+RUN MAX_JOBS=2 TORCH_CUDA_ARCH_LIST="8.7" \
+    pip wheel . -w /triton/dist --no-deps --no-cache-dir $PIP_OPTS
+
 FROM nvcr.io/nvidia/l4t-jetpack:${JETPACK}
 RUN apt-get -yq update && apt-get install -yq git python3-pip python$(python -V|grep -Eo '\b[0-9]+\.[0-9]+')-dev libopenmpi3 libopenblas0
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
 WORKDIR /
-RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist pip install --no-cache-dir $PIP_OPTS /pytorch/dist/*whl
+RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist \
+    --mount=type=bind,from=triton-builder,source=/triton/dist,target=/triton/dist \
+    pip install --no-cache-dir $PIP_OPTS /pytorch/dist/*whl /triton/dist/*whl
