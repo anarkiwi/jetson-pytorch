@@ -9,7 +9,7 @@ COPY pytorch /pytorch
 RUN if [ ! -e pytorch/LICENSE ] ; then rmdir /pytorch ; git clone --depth 1 --recursive --branch ${PYTORCH_VERSION} http://github.com/pytorch/pytorch ; fi
 WORKDIR /pytorch
 RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
-RUN MAX_JOBS=2 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" python /pytorch/setup.py bdist_wheel
+RUN MAX_JOBS=4 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" python /pytorch/setup.py bdist_wheel
 
 # triton-builder: build triton at the exact commit torch's own CI pins.
 # Without triton, ``torch.compile`` Inductor falls back to aten-only
