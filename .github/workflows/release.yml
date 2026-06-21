@@ -10,7 +10,7 @@ jobs:
       name: "release"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: mkdir pytorch
         run: mkdir pytorch
       - name: Set up QEMU
