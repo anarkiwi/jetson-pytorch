@@ -36,10 +36,16 @@ RUN MAX_JOBS=${MAX_JOBS} USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7
 # Release stage stays on the devel base: anarkiwi/jetson-triton compiles
 # triton against this image and needs nvcc plus the CUDA/cuDNN headers.
 FROM nvcr.io/nvidia/cuda:${CUDA_BASE}
-RUN apt-get -yq update && apt-get install -yq git python3-pip python3-dev libopenmpi3t64 libopenblas0
+# libnuma1: libc10.so links it, so `import torch` fails without it.
+# The builder gets it transitively from libopenmpi-dev; the l4t-jetpack
+# base used to carry it, the stock CUDA base does not.
+RUN apt-get -yq update && apt-get install -yq git python3-pip python3-dev libopenmpi3t64 libopenblas0 libnuma1
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV CUDA_HOME=/usr/local/cuda
 WORKDIR /
-RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist pip install --no-cache-dir $PIP_OPTS /pytorch/dist/*whl
+# numpy is not a hard torch dependency but torch warns and disables its
+# numpy interop without it; the l4t-jetpack base shipped it.
+RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist pip install --no-cache-dir $PIP_OPTS numpy /pytorch/dist/*whl
+COPY smoke_test.py /smoke_test.py
