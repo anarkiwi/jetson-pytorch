@@ -21,7 +21,17 @@ WORKDIR /pytorch
 RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
 # 8.7 is Orin (sm_87); still supported by CUDA 13, unlike the sm_5x-7x
 # archs it dropped.
-RUN MAX_JOBS=2 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 /pytorch/setup.py bdist_wheel
+#
+# MAX_JOBS defaults to the 4 vCPUs of the ubuntu-24.04-arm runner.
+# MAX_JOBS=2 dated from when triton built in this same image and its
+# LLVM link stage set the memory ceiling; triton now lives in
+# anarkiwi/jetson-triton, so the other half of the runner is free.
+# BUILD_TEST=0 drops the C++ test binaries, which never reach the
+# wheel. Together these buy the margin the 6h job limit needs: every
+# successful build from v2.10.0 to v2.12.0 landed at 321-344 min, and
+# v2.13.0 was killed at the 360 min ceiling.
+ARG MAX_JOBS=4
+RUN MAX_JOBS=${MAX_JOBS} USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_TEST=0 BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 /pytorch/setup.py bdist_wheel
 
 # Release stage stays on the devel base: anarkiwi/jetson-triton compiles
 # triton against this image and needs nvcc plus the CUDA/cuDNN headers.

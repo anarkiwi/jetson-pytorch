@@ -35,6 +35,16 @@ jobs:
           test -n "$torch_ref"
           echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
           echo "torch_ref=$torch_ref" >> "$GITHUB_OUTPUT"
+      # 4 concurrent nvcc jobs on a 16 GB runner can spike past RAM on
+      # the heaviest ATen template units. Swap turns that from an
+      # OOM-kill into a brief slowdown.
+      - name: Add swap
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
       - name: Login to Docker Hub
         uses: docker/login-action@v4
         with:
