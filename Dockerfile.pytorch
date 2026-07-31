@@ -1,19 +1,35 @@
-ARG JETPACK="r36.4.0"
-FROM nvcr.io/nvidia/l4t-jetpack:${JETPACK} AS pytorch-builder
-ARG PYTORCH_VERSION="v2.10.0"
+# JetPack 7.2 (Jetson Linux r39.2) moves the whole Orin family -- AGX
+# Orin, Orin NX, Orin Nano -- onto Ubuntu 24.04 and the Arm SBSA CUDA
+# 13.2 toolkit, the same toolkit used on GH200/GB200. The l4t-* base
+# images are JetPack 6 artifacts (last tag r36.4.0) and are not
+# published for r39, so the correct base is now the stock SBSA CUDA
+# image. PyTorch itself ships 13.2 aarch64 builds from 2.13.0 on, so
+# the toolkit version here matches upstream CI exactly.
+ARG CUDA_BASE="13.2.1-cudnn-devel-ubuntu24.04"
+FROM nvcr.io/nvidia/cuda:${CUDA_BASE} AS pytorch-builder
+ARG PYTORCH_VERSION="v2.13.0"
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
-RUN apt-get -yq update && apt-get install -yq git python3-pip libssl-dev cmake libopenblas-dev libopenmpi-dev && pip install $PIP_OPTS scikit-build ninja
+# Ubuntu 24.04 marks its python as externally managed (PEP 668).
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV CUDA_HOME=/usr/local/cuda
+RUN apt-get -yq update && apt-get install -yq git python3-pip python3-dev libssl-dev cmake libopenblas-dev libopenmpi-dev && pip install $PIP_OPTS scikit-build ninja
 WORKDIR /
 COPY pytorch /pytorch
 RUN if [ ! -e pytorch/LICENSE ] ; then rmdir /pytorch ; git clone --depth 1 --recursive --branch ${PYTORCH_VERSION} http://github.com/pytorch/pytorch ; fi
 WORKDIR /pytorch
 RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
-RUN MAX_JOBS=2 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_IGNORE_SVE_UNAVAILABLE=1 python /pytorch/setup.py bdist_wheel
+# 8.7 is Orin (sm_87); still supported by CUDA 13, unlike the sm_5x-7x
+# archs it dropped.
+RUN MAX_JOBS=2 USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 /pytorch/setup.py bdist_wheel
 
-FROM nvcr.io/nvidia/l4t-jetpack:${JETPACK}
-RUN apt-get -yq update && apt-get install -yq git python3-pip python$(python -V|grep -Eo '\b[0-9]+\.[0-9]+')-dev libopenmpi3 libopenblas0
+# Release stage stays on the devel base: anarkiwi/jetson-triton compiles
+# triton against this image and needs nvcc plus the CUDA/cuDNN headers.
+FROM nvcr.io/nvidia/cuda:${CUDA_BASE}
+RUN apt-get -yq update && apt-get install -yq git python3-pip python3-dev libopenmpi3t64 libopenblas0
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV CUDA_HOME=/usr/local/cuda
 WORKDIR /
 RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist pip install --no-cache-dir $PIP_OPTS /pytorch/dist/*whl
