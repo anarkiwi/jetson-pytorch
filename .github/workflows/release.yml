@@ -68,3 +68,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
         if: github.repository == 'anarkiwi/jetson-pytorch' && github.event_name == 'push'
+      # The runner is arm64, so the pushed image runs natively here. No
+      # GPU, so this proves packaging only -- that the wheel imports and
+      # carries the arch it was meant to.
+      - name: Smoke test pushed image
+        run: docker run --rm anarkiwi/jetson-pytorch:${{ steps.version.outputs.image_tag }} python3 /smoke_test.py
+        if: github.repository == 'anarkiwi/jetson-pytorch' && github.event_name == 'push'
