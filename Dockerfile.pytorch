@@ -48,4 +48,11 @@ WORKDIR /
 # numpy is not a hard torch dependency but torch warns and disables its
 # numpy interop without it; the l4t-jetpack base shipped it.
 RUN --mount=type=bind,from=pytorch-builder,source=/pytorch/dist,target=/pytorch/dist pip install --no-cache-dir $PIP_OPTS numpy /pytorch/dist/*whl
-COPY smoke_test.py /smoke_test.py
+COPY smoke_test.py gpu_test.py /
+# The CUDA 13.2 image carries an Orin forward-compat driver here, which
+# nvidia-container-toolkit 1.19.1 panics parsing, so no container using
+# the nvidia runtime starts at all -- stock nvcr.io/nvidia/cuda
+# included. JetPack 7.2 already ships a newer driver (595.78 vs the
+# 595.58.03 in compat_orin), so these libraries are dead weight on the
+# host this image targets.
+RUN rm -rf /usr/local/cuda/compat_orin
