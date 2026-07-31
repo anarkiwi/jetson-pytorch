@@ -38,12 +38,17 @@ jobs:
       # 4 concurrent nvcc jobs on a 16 GB runner can spike past RAM on
       # the heaviest ATen template units. Swap turns that from an
       # OOM-kill into a brief slowdown.
+      # The runner already has an active /swapfile, so this adds a
+      # second area rather than replacing it -- Linux takes as many as
+      # you give it.
       - name: Add swap
         run: |
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
+          set -eu
+          sudo fallocate -l 8G "$RUNNER_TEMP/swapfile"
+          sudo chmod 600 "$RUNNER_TEMP/swapfile"
+          sudo mkswap "$RUNNER_TEMP/swapfile"
+          sudo swapon "$RUNNER_TEMP/swapfile"
+          swapon --show
           free -h
       - name: Login to Docker Hub
         uses: docker/login-action@v4
