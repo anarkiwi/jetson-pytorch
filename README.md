@@ -46,7 +46,20 @@ Push a `vX.Y.Z` tag matching the pytorch release; the
 
 ## Sanity check
 
+`smoke_test.py` runs without a driver and gates CI on packaging;
+`gpu_test.py` needs a real Orin and checks CUDA against CPU
+references. Both ship in the image.
+
 ```bash
-docker run --rm --runtime nvidia anarkiwi/jetson-pytorch:v2.13.0 \
-    python3 -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+docker run --rm anarkiwi/jetson-pytorch:v2.13.0 python3 /smoke_test.py
+docker run --rm --runtime nvidia anarkiwi/jetson-pytorch:v2.13.0 python3 /gpu_test.py
 ```
+
+The release stage deletes `/usr/local/cuda/compat_orin`, the Orin
+forward-compat driver the CUDA base ships.
+nvidia-container-toolkit 1.19.1 panics parsing it, which stops any
+container using the nvidia runtime from starting -- stock
+`nvcr.io/nvidia/cuda` included. It is redundant here anyway: JetPack
+7.2's driver is newer than the compat libraries. The cost is that
+this image needs a JetPack 7.2-class driver (R595+) rather than
+carrying its own fallback.
