@@ -12,6 +12,7 @@ import torch
 
 EXPECTED_ARCHS = ["sm_87"]  # Orin
 EXPECTED_CUDA_MAJOR = "13"
+DEV_VERSION_MARKERS = ("a0", "+git")  # only a branch build should carry these
 
 
 def main() -> int:
@@ -26,6 +27,11 @@ def main() -> int:
     assert torch.cuda.get_arch_list() == EXPECTED_ARCHS, torch.cuda.get_arch_list()
     assert torch.version.cuda.split(".")[0] == EXPECTED_CUDA_MAJOR, torch.version.cuda
     assert torch.backends.cudnn.version() is not None
+
+    # 2.13.0a0+gitcf30153 sorts below 2.13.0, defeating a torch>=2.13 pin.
+    assert not any(
+        m in torch.__version__ for m in DEV_VERSION_MARKERS
+    ), torch.__version__
 
     # ATen kernels the wheel was built with, plus the numpy bridge.
     x = torch.randn(64, 64)

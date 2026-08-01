@@ -30,8 +30,17 @@ RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
 # wheel. Together these buy the margin the 6h job limit needs: every
 # successful build from v2.10.0 to v2.12.0 landed at 321-344 min, and
 # v2.13.0 was killed at the 360 min ceiling.
+#
+# pytorch's version.txt carries an alpha marker (2.13.0a0) and setup.py
+# appends +git<sha> unless PYTORCH_BUILD_VERSION says otherwise, so a
+# tag build would otherwise ship 2.13.0a0+gitcf30153 and sort below
+# 2.13.0 for anyone pinning torch>=2.13. PYTORCH_BUILD_NUMBER is
+# mandatory alongside it. The guard keeps non-tag refs building: the
+# version is PEP 440 validated, so exporting a branch name would fail.
 ARG MAX_JOBS=4
-RUN MAX_JOBS=${MAX_JOBS} USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_TEST=0 BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 /pytorch/setup.py bdist_wheel
+ARG PYTORCH_BUILD_NUMBER=1
+RUN case "${PYTORCH_VERSION}" in v[0-9]*) export PYTORCH_BUILD_VERSION="${PYTORCH_VERSION#v}" PYTORCH_BUILD_NUMBER="${PYTORCH_BUILD_NUMBER:-1}" ;; esac; \
+    MAX_JOBS=${MAX_JOBS} USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_TEST=0 BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 /pytorch/setup.py bdist_wheel
 
 # Release stage stays on the devel base: anarkiwi/jetson-triton compiles
 # triton against this image and needs nvcc plus the CUDA/cuDNN headers.
