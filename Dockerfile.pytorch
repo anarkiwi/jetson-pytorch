@@ -35,10 +35,14 @@ RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
 # below the release for anyone pinning torch>=X.Y. PYTORCH_BUILD_NUMBER
 # is mandatory alongside it. The guard keeps non-tag refs building: the
 # version is PEP 440 validated, so exporting a branch name would fail.
+#
+# 2.14 dropped `setup.py bdist_wheel` (PEP 517 / scikit-build-core
+# only now); `python -m build --wheel --no-isolation` is upstream's
+# documented replacement and honors the same env vars.
 ARG MAX_JOBS=4
 ARG PYTORCH_BUILD_NUMBER=1
 RUN case "${PYTORCH_VERSION}" in v[0-9]*) export PYTORCH_BUILD_VERSION="${PYTORCH_VERSION#v}" PYTORCH_BUILD_NUMBER="${PYTORCH_BUILD_NUMBER:-1}" ;; esac; \
-    MAX_JOBS=${MAX_JOBS} USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_TEST=0 BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 /pytorch/setup.py bdist_wheel
+    MAX_JOBS=${MAX_JOBS} USE_PRIORITIZED_TEXT_FOR_LD=1 TORCH_CUDA_ARCH_LIST="8.7" BUILD_TEST=0 BUILD_IGNORE_SVE_UNAVAILABLE=1 python3 -m build --wheel --no-isolation --outdir /pytorch/dist /pytorch
 
 # Release stage stays on the devel base: anarkiwi/jetson-triton compiles
 # triton against this image and needs nvcc plus the CUDA/cuDNN headers.
