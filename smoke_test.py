@@ -28,7 +28,7 @@ def main() -> int:
     assert torch.version.cuda.split(".")[0] == EXPECTED_CUDA_MAJOR, torch.version.cuda
     assert torch.backends.cudnn.version() is not None
 
-    # 2.13.0a0+gitcf30153 sorts below 2.13.0, defeating a torch>=2.13 pin.
+    # 2.14.0a0+git2b3ec34 sorts below 2.14.0, defeating a torch>=2.14 pin.
     assert not any(
         m in torch.__version__ for m in DEV_VERSION_MARKERS
     ), torch.__version__
