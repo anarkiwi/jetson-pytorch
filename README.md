@@ -6,7 +6,7 @@ built from source against the JetPack 7.2 CUDA toolkit.
 ## Image
 
 `anarkiwi/jetson-pytorch:${PYTORCH_VERSION}` -- e.g.
-`anarkiwi/jetson-pytorch:v2.13.0`. Tag `latest` tracks `main`.
+`anarkiwi/jetson-pytorch:v2.14.0`. Tag `latest` tracks `main`.
 
 | | |
 |---|---|
@@ -29,8 +29,8 @@ Triton is not included; see
 
 ```bash
 docker buildx build --platform linux/arm64 \
-    --build-arg PYTORCH_VERSION=v2.13.0 \
-    -f Dockerfile.pytorch -t anarkiwi/jetson-pytorch:v2.13.0 .
+    --build-arg PYTORCH_VERSION=v2.14.0 \
+    -f Dockerfile.pytorch -t anarkiwi/jetson-pytorch:v2.14.0 .
 ```
 
 Build args: `PYTORCH_VERSION` (pytorch git tag), `CUDA_BASE` (CUDA
@@ -51,8 +51,8 @@ Push a `vX.Y.Z` tag matching the pytorch release; the
 references. Both ship in the image.
 
 ```bash
-docker run --rm anarkiwi/jetson-pytorch:v2.13.0 python3 /smoke_test.py
-docker run --rm --runtime nvidia anarkiwi/jetson-pytorch:v2.13.0 python3 /gpu_test.py
+docker run --rm anarkiwi/jetson-pytorch:v2.14.0 python3 /smoke_test.py
+docker run --rm --runtime nvidia anarkiwi/jetson-pytorch:v2.14.0 python3 /gpu_test.py
 ```
 
 The release stage deletes `/usr/local/cuda/compat_orin`, the Orin

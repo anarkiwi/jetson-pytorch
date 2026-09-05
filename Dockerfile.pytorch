@@ -7,7 +7,7 @@
 # the toolkit version here matches upstream CI exactly.
 ARG CUDA_BASE="13.2.1-cudnn-devel-ubuntu24.04"
 FROM nvcr.io/nvidia/cuda:${CUDA_BASE} AS pytorch-builder
-ARG PYTORCH_VERSION="v2.13.0"
+ARG PYTORCH_VERSION="v2.14.0"
 ARG PIP_OPTS=""
 ENV PIP_OPTS=$PIP_OPTS
 # Ubuntu 24.04 marks its python as externally managed (PEP 668).
@@ -27,15 +27,13 @@ RUN pip install --no-cache-dir $PIP_OPTS -r /pytorch/requirements.txt
 # LLVM link stage set the memory ceiling; triton now lives in
 # anarkiwi/jetson-triton, so the other half of the runner is free.
 # BUILD_TEST=0 drops the C++ test binaries, which never reach the
-# wheel. Together these buy the margin the 6h job limit needs: every
-# successful build from v2.10.0 to v2.12.0 landed at 321-344 min, and
-# v2.13.0 was killed at the 360 min ceiling.
+# wheel. Together these buy the margin the 6h job limit needs.
 #
-# pytorch's version.txt carries an alpha marker (2.13.0a0) and setup.py
-# appends +git<sha> unless PYTORCH_BUILD_VERSION says otherwise, so a
-# tag build would otherwise ship 2.13.0a0+gitcf30153 and sort below
-# 2.13.0 for anyone pinning torch>=2.13. PYTORCH_BUILD_NUMBER is
-# mandatory alongside it. The guard keeps non-tag refs building: the
+# pytorch's version.txt carries an alpha marker (e.g. 2.14.0a0) and
+# setup.py appends +git<sha> unless PYTORCH_BUILD_VERSION says
+# otherwise, so a tag build would otherwise ship a version that sorts
+# below the release for anyone pinning torch>=X.Y. PYTORCH_BUILD_NUMBER
+# is mandatory alongside it. The guard keeps non-tag refs building: the
 # version is PEP 440 validated, so exporting a branch name would fail.
 ARG MAX_JOBS=4
 ARG PYTORCH_BUILD_NUMBER=1
